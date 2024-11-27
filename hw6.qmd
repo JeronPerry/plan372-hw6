@@ -1,0 +1,77 @@
+---
+title: "hw6"
+author: "Jeron Perry"
+format: html
+---
+
+
+```{r}
+library(readr) # Load the readr library
+library(tidyverse) # Load the tidyverse library
+library(ggplot2) # Load the ggplot2 library
+```
+
+
+### Question 1: Sample sizes by stateLinks to an external site.
+The dataset does not contain a state column, but does contain a city column which contains both city and state information (e.g. Charlotte, NC). Use a regular expression to create separate columns for the city name and state abbreviation, and use these columns to answer the following questions.
+
+How many records are there in each state (include a table or bar plot)? [4 points]
+```{r}
+data = read_csv(here::here("TS3_Raw_tree_data.csv")) # Read in the Raw Tree data set
+
+state_data <- data |>. # Create an additional data set containing a state column
+  mutate(city_name = str_extract(City, "^[^,]+"), # Extract the city name using a regular expression and create a city column containing only the extracted name
+         state = str_extract(City, "[^,]+$")) # Extract the state name using a regular expression and create a state column containing only the extracted name
+
+total_states <- state_data |> # Create a new data set containing total number of observations for each state
+  group_by(state) |> # Group by the state column
+  summarize(count = n()) # Summarize the total count for each state 
+
+total_states # Print the table 
+
+ggplot(total_states, aes(x=state, y=count)) + # Create a bar graph, with the X variable being the state and the Y variable being the count for each state 
+  geom_col()
+```
+
+
+### Question 2: Cities in NC/SCLinks to an external site.
+Since different trees grow differently in different parts of the country, the city wants you to only use data from North and South Carolina. Filter the dataset to only these states, and use that filtered dataset for all remaining questions.
+
+What cities did they collect data from in North and South Carolina? [3 points]
+```{r}
+NC_SC_data <- state_data |>
+  filter(str_detect(state, "^[:space:]*(NC|SC)[:space:]*$")) # Filter a new dataset to just NC and SC observations using a regular expression
+
+NC_SC_cities <- NC_SC_data |>
+  group_by(city_name, state) |>
+  summarize() # Create a new dataset for the city name and state for all cities used in NC or SC
+
+NC_SC_cities # Print the results table 
+
+```
+The data has been collected from both Charleston, SC and Charlotte, NC. 
+
+
+### Question 3: Genera and speciesLinks to an external site.
+The city wishes to know what types of trees in the dataset have the largest crown (i.e. their branches and leaves cover the most area, maximizing shade). The crown size is in the column AvgCdia (m), in meters.
+
+The data contain the scientific names of the species of each surveyed tree. Scientific names use binomial nomenclatureLinks to an external site., where the scientific names contain both a genus (plural genera) and species. For instance, Acer saccharum is the sugar maple; the genus is Acer and the species is saccharum. Trees within a genus are related and may share physical characteristics. For instance, Acer rubrum or the red maple is another large maple tree. To maximize sample size, the city has requested you compute the average canopy diameter for each genus. This requires you to write a regular expression to extract the genus.
+
+What genus of trees has the largest crown diameter in North and South Carolina? [3 points]
+```{r}
+NC_SC_data <- NC_SC_data |>
+  mutate(genus = str_extract(ScientificName, "^[^[:space:]]+")) # Mutate the NC/SC data set to have a column for the genus, using the str_extract function as well as a regular expression
+
+genus_size <- NC_SC_data |>
+  group_by(genus) |>
+  summarize(avg_canopy_diameter = mean(`AvgCdia (m)`)) # Create a filtered data set that only contains genus as well as the average canopy size for each genus 
+
+largest_genus <- genus_size |>
+  filter(avg_canopy_diameter == max(avg_canopy_diameter)) # Create a further filtered data set only containing the genus with the largest average canopy diameter 
+
+largest_genus # Print the results table 
+```
+The Quercus genus has the largest average crown diameter in North and South Carolina at 13.62316 meters. 
+
+
+Github repository: https://github.com/JeronPerry/plan372-hw6 
